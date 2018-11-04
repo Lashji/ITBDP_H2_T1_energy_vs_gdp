@@ -37,42 +37,42 @@ def make_graph(energy_values, gdp_values, years):
     ax1.set_ylabel("Energy", color=energy_color)
     ax1.plot(t, energy_values, label="Energy", color=energy_color)
     ax1.tick_params(axis='y', labelcolor=energy_color)
-    ax1.legend(loc=0)
     ax2 = ax1.twinx()
 
     ax2.set_ylabel("GDP", color=gdp_color)
     ax2.plot(t, gdp_values, label="GDP", color=gdp_color)
     ax2.tick_params(axis='y', labelcolor=gdp_color)
-    ax2.legend(loc=1)
     fig.tight_layout()
-
+    fig.legend(loc=1, bbox_to_anchor=(1, 1), bbox_transform=ax2.transAxes)
     save_as_pdf(fig)
     plt.show()
 
 
-def main():
-    gdp_values = []
-    energy_values = []
-    years = []
+def load_data(url, value):
+    tmp = []
+    convert_type = "float" if value == "value" else "int"
+    req = urllib.request.urlopen(url)
+    data = req.read()
+    soup = BeautifulSoup(data, "xml")
+    pages = int(soup.find('data')['pages'])
 
-    for i in range(1, 3):
+    for i in range(1, pages + 1):
         page = "?page=" + str(i)
-        gdp_req = urllib.request.urlopen(
-            "http://api.worldbank.org/countries/fin/indicators/NY.GDP.PCAP.CD" + page)
-        gdp_data = gdp_req.read()
+        data_req = urllib.request.urlopen(url + page)
+        data_read = data_req.read()
+        data_soup = BeautifulSoup(data_read, "xml")
+        tmp = tmp + getData(data_soup, value, convert_type)
 
-        energy_req = urllib.request.urlopen(
-            "http://api.worldbank.org/countries/fin/indicators/EG.USE.PCAP.KG.OE" + page)
-        energy_data = energy_req.read()
+    return tmp
 
-        gdp_soup = BeautifulSoup(gdp_data, "xml")
-        energy_soup = BeautifulSoup(energy_data, "xml")
 
-        energy_values = energy_values + getData(energy_soup, "value", "float")
-
-        gdp_values = gdp_values + getData(gdp_soup, "value", "float")
-
-        years = years + getData(energy_soup, "date", "int")
+def main():
+    gdp_values = load_data(
+        "http://api.worldbank.org/countries/fin/indicators/NY.GDP.PCAP.CD", "value")
+    energy_values = load_data(
+        "http://api.worldbank.org/countries/fin/indicators/EG.USE.PCAP.KG.OE", "value")
+    years = load_data(
+        "http://api.worldbank.org/countries/fin/indicators/NY.GDP.PCAP.CD", "date")
 
     make_graph(energy_values, gdp_values, years)
 
