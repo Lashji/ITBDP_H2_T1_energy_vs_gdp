@@ -3,31 +3,30 @@ from bs4 import BeautifulSoup
 import matplotlib.pyplot as plt
 import numpy as np
 
-gdp_values = []
-energy_values = []
-years = []
 
-
-def getData(data, value, convert_type):
+def getData(data, tag, convert_type):
     tmp = []
     last = 0
     value = 0
-    for v in data(value):
-        value = convert_type == "float" if float(v.text) else int(v.text)
+
+    for v in data(tag):
+
         if v.text:
+            value = float(v.text) if convert_type == "float" else int(v.text)
             tmp.append(value)
+            last = value
         else:
             tmp.append(last)
-    last = value
-    print(tmp)
-    tmp = tmp.reverse()
-    print(tmp)
+
+    tmp.reverse()
     return tmp
 
 
-def makeGraph():
-    energy_values.reverse()
-    gdp_values.reverse()
+def save_as_pdf(fig):
+    fig.savefig("energy_vs_gdp.pdf", bbox_inches='tight')
+
+
+def make_graph(energy_values, gdp_values, years):
 
     fig, ax1 = plt.subplots()
     energy_color = "tab:red"
@@ -44,13 +43,17 @@ def makeGraph():
     ax2.set_ylabel("GDP", color=gdp_color)
     ax2.plot(t, gdp_values, label="GDP", color=gdp_color)
     ax2.tick_params(axis='y', labelcolor=gdp_color)
-    ax2.legend(loc=0)
+    ax2.legend(loc=1)
     fig.tight_layout()
 
+    save_as_pdf(fig)
     plt.show()
 
 
 def main():
+    gdp_values = []
+    energy_values = []
+    years = []
 
     for i in range(1, 3):
         page = "?page=" + str(i)
@@ -65,11 +68,13 @@ def main():
         gdp_soup = BeautifulSoup(gdp_data, "xml")
         energy_soup = BeautifulSoup(energy_data, "xml")
 
-        sum(energy_values, getData(energy_soup, "value", "float"))
-        sum(gdp_values, getData(gdp_soup, "value", "float"))
-        sum(years, getData(energy_soup, "value", "int"))
+        energy_values = energy_values + getData(energy_soup, "value", "float")
 
-        makeGraph()
+        gdp_values = gdp_values + getData(gdp_soup, "value", "float")
+
+        years = years + getData(energy_soup, "date", "int")
+
+    make_graph(energy_values, gdp_values, years)
 
 
 main()
